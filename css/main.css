@@ -1,0 +1,44 @@
+
+
+/* ==========================================================================
+   Author's custom styles
+   ========================================================================== */
+
+@media (min-width:1200px){
+.container {
+  max-width:1800px;
+}
+}
+
+
+.navbar-inverse{
+  background-color:#003f22;
+  background-image:none;
+}
+
+.navbar-brand img{
+  height:20px;
+  padding-right:20px;
+}
+
+
+#panel1, #panel2{
+  height:400px;
+}
+
+.dropzone{
+  border:2px dashed #ccc;
+  margin:10px auto;
+  text-align:center;
+  color:#ccc;
+}
+
+
+
+
+
+
+
+
+
+
