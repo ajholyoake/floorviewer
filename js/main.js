@@ -12,9 +12,6 @@ $(this).on('dragover',function(){return false;});
 $(this).on('dragend',function(){return false;});
 $(this).on('drop',function(e){
 getData(e,this)})});
-
-
-
 });
 
 function getData(e,item) {
@@ -108,13 +105,24 @@ d3.json("readme-heatmap.json", function(error, heatmap) {
 }
 
 
+function getPicture(el,data){
+  console.log(JSON.stringify(data));
+  $.post("http://localhost:5000/floorpng",JSON.stringify(data),function(retdata,textstatus,jqXHR)
+  {
+
+  console.log(retdata);
+
+  },'text');
+}
+
 function processTextFile(el,res,file){
   //remove trailing spaces
   res = res.replace(/[ ]*\n/g,'\n').replace(/[ ]+/g,',')
   var data = $.csv.toObjects(res);
   //Test with Cp
 
-  drawData(el,data);
+  getPicture(el,data);
+  //drawData(el,data);
 };
 
 function processData(el,res,file){
