@@ -17,8 +17,8 @@ function bundleOuter(){
   var w;
   shim( w = watchify(), {
       jquery:   { path: './js/vendor/jquery-1.10.1.min.js', exports: '$' },
-      d3:       { path: './js/vendor/d3.v3.min.js',     exports: 'd3'},
-      d3contour:{ path: './js/contour.js', exports:null},
+      //d3:       { path: './js/vendor/d3.v3.min.js',     exports: 'd3'},
+      //d3contour:{ path: './js/contour.js', exports:null},
       bootstrap:{ path: './js/vendor/bootstrap.min.js', exports:null},
       modernizr:{ path: './js/vendor/modernizr-2.6.2-respond-1.1.0.min.js', exports:null}
   })
