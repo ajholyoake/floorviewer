@@ -45,8 +45,35 @@ function processFile(n,res,file){
   case 'txt':
     res = res.replace(/[ ]*\n/g,'\n').replace(/[ ]+/g,',')
     }
+  
+  var td = $.csv.toObjects(res);
 
-  d[n-1] = $.csv.toObjects(res);
+
+  var reflect = true;
+  var signs = null;
+
+  td.forEach(function(el){
+  if (el.Y > 0){
+  reflect = (reflect && (signs === 1 || signs == null));
+  signs = 1;
+  } else if(el.Y < 0) {
+    reflect = (reflect && (signs === -1 || signs == null));
+    signs = -1;
+  };
+  });
+
+  if(reflect){
+    var td2 = $.csv.toObjects(res); //ugh
+    td2.forEach(function(el){
+      var tel = $.extend({},el);
+      tel.Y = -tel.Y;
+      td.push(tel);
+    });
+  }
+
+  d[n-1] = td;
+
+
 
   //Add entries into the selects, put in appropriate data structure and send both over. Consider caching responses
   for(var k in d[n-1][0]){
