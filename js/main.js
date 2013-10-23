@@ -4,159 +4,90 @@ var $ = require('jquery')
 require('./jquery.csv-0.71.min.js');
 
 
+
+var d = [[],[]];
 $(function(){
 //Set up events etc
+//
 
 $('.dropzone').each(function(){ 
 $(this).on('dragover',function(){return false;});
 $(this).on('dragend',function(){return false;});
 $(this).on('drop',function(e){
 getData(e,this)})});
+
+$('.field-select').on('change',function(e){plotGraphs(this);});
+
 });
 
 function getData(e,item) {
-//e is the event
-//n is the side number
-
 var $this = $(item);
-var n = $this.attr('id').substr(1,1);
+var n = parseFloat($this.attr('id').substr(1,1));
 
 e.preventDefault();
 var file = e.originalEvent.dataTransfer.files[0],
   reader = new FileReader();
   reader.onload = function(event){
-  
-  processData('#panel' + n,event.target.result,file);
+  processFile(n,event.target.result,file);
   }
- // console.log(file);
   reader.readAsText(file);
 }
 
-//function drawData(el,data){
-//
-////Setup the drawing bits
-//var margin = {top: 20, right: 20, bottom: 30, left: 30},
-//    width = $(el).width() - margin.left - margin.right,
-//    height = $(el).height() - margin.top - margin.bottom;
-//
-//var x = d3.scale.linear()
-//    .range([0, width]);
-//
-//var y = d3.scale.linear()
-//    .range([height, 0]);
-//
-//var color = d3.scale.linear()
-//    .domain([95, 115, 135, 155, 175, 195])
-//    .range(["#0a0", "#6c0", "#ee0", "#eb4", "#eb9", "#fff"]);
-//
-//var xAxis = d3.svg.axis()
-//    .scale(x)
-//    .orient("bottom")
-//    .ticks(20);
-//
-//var yAxis = d3.svg.axis()
-//    .scale(y)
-//    .orient("left");
-//
-//var svg = d3.select(el).append("svg")
-//    .attr("width", width + margin.left + margin.right)
-//    .attr("height", height + margin.top + margin.bottom)
-//  .append("g")
-//    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-//
-//
-//d3.json("readme-heatmap.json", function(error, heatmap) {
-//  var dx = heatmap[0].length,
-//      dy = heatmap.length;
-//
-//  x.domain([0, dx]);
-//  y.domain([0, dy]);
-//
-//  svg.selectAll(".isoline")
-//      .data(color.domain().map(isoline))
-//    .enter().append("path")
-//      .datum(function(d) { return d3.geom.contour(d).map(transform); })
-//      .attr("class", "isoline")
-//      .attr("d", function(d) { return "M" + d.join("L") + "Z"; })
-//      .style("fill", function(d, i) { return color.range()[i]; });
-//
-//  svg.append("g")
-//      .attr("class", "x axis")
-//      .attr("transform", "translate(0," + height + ")")
-//      .call(xAxis);
-//
-//  svg.append("g")
-//      .attr("class", "y axis")
-//      .call(yAxis);
-//
-//  function isoline(min) {
-//    return function(x, y) {
-//      return x >= 0 && y >= 0 && x < dx && y < dy && heatmap[y][x] >= min;
-//    };
-//  }
-//
-//  function transform(point) {
-//    return [point[0] * width / dx, point[1] * height / dy];
-//  }
-//});
-//
-//
-//
-//}
-
-
-function getPicture(el,data){
-  console.log(JSON.stringify(data));
-  $.post("http://dev-performanceanalysis:5000/floorpng",JSON.stringify(data),function(retdata,textstatus,jqXHR)
-  {
-  $(el).find('img').remove();
-   var imgholder = $(el).append($('<img src="data:image/png;base64,' + retdata + '" />'));
-  //console.log(retdata);
-
-  },'text');
-}
-
-function processTextFile(el,res,file){
-  //remove trailing spaces
-  res = res.replace(/[ ]*\n/g,'\n').replace(/[ ]+/g,',')
-  var data = $.csv.toObjects(res);
-  //Test with Cp
-
-  getPicture(el,data);
-  //drawData(el,data);
-};
-
-function processData(el,res,file){
-
-var re = /(?:\.([^.]+))?$/;
-var extension = re.exec(file.name)[1];
-
-switch(extension)
-{ 
-  case 'txt':
-  processTextFile(el,res,file);
-  default:
-
-}
+function processFile(n,res,file){
   
+  var el = $('#panel' + n);
 
+  var re = /(?:\.([^.]+))?$/;
+  var extension = re.exec(file.name)[1];
+
+  //res = res.replace(/[ ]*\n/g,'\n').replace(/[ ]+/g,',')
+  switch(extension){
+  case 'txt':
+    res = res.replace(/[ ]*\n/g,'\n').replace(/[ ]+/g,',')
+    }
+
+  d[n-1] = $.csv.toObjects(res);
+
+  //Add entries into the selects, put in appropriate data structure and send both over. Consider caching responses
+  for(var k in d[n-1][0]){
+  if(k.length > 0 & k !== 'X' & k !== 'Y')
+  {
+  $('#select' + n).append($('<option>',{value:k}).text(k));
+  }
+  }
+  $('#select' + n).css({opacity: 1});
+  
+  //Now process the data appropriately
+  plotGraphs();
+}
+
+function plotGraphs(el)
+{
+  var a = [[],[]];
+  var fields = [$('#select1').val(), $('#select2').val()];
+  d[0].length && d[0].forEach(function(obj){a[0].push({X:obj.X,Y:obj.Y, Z:obj[fields[0]]})});
+  d[1].length && d[1].forEach(function(obj){a[1].push({X:obj.X,Y:obj.Y, Z:obj[fields[1]]})});
+  
+  $(el).closest('.bigpanel').find('img').remove();
+  $('#deltarow').find('img').remove();
+
+  
+  $.post("http://dev-performanceanalysis:5000/floorpng",JSON.stringify(a),function(retdata,textstatus,jqXHR)
+  {
+  var pngs = JSON.parse(retdata);
+  for (var ii =0; ii < pngs.length; ii++)
+  {
+  $('#panel' + (ii+1)).find('img').remove();
+  if(pngs[ii].length > 0)
+  {
+  $('#panel' + (ii+1)).append($('<img src="data:image/png;base64,' + pngs[ii] + '" />'));
+  }
+  if(ii === 2){
+  $('#deltarow').css({opacity:1});
+  }
+  }
+  },'text');
 
 
 }
-
-//holder.ondrop = function (e) {
-//  this.className = '';
-//  e.preventDefault();
-//
-//  var file = e.dataTransfer.files[0],
-//      reader = new FileReader();
-//  reader.onload = function (event) {
-//    console.log(event.target);
-//    holder.style.background = 'url(' + event.target.result + ') no-repeat center';
-//  };
-//  console.log(file);
-//  reader.readAsDataURL(file);
-//
-//  return false;
-//};
 

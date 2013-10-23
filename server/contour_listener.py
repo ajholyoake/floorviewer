@@ -18,7 +18,7 @@ import numpy.ma as ma
 import cStringIO
 import msvcrt
 
-from simplejson import loads
+from simplejson import loads,dumps
 class ContourPlotter(object):
 
   def __init__(self):
@@ -34,40 +34,78 @@ class ContourPlotter(object):
   def on_generate_png(self,request):
     print request.headers.get('content-type')
     thing = request.form.copy().popitem()
-    data = loads(thing[0])
+    d = loads(thing[0])
+    ret = [] #returns three png things
+    X = [];
+    Y = [];
+    Z = [];
+    Zi = [];
+    plotx = [float("Inf"),float("-Inf")]
+    ploty = [float("Inf"),float("-Inf")]
 
-    x=[]
-    y=[]
-    z=[]
-    for d in data:
-      x.append(float(d['X']))
-      y.append(float(d['Y']))
-      z.append(float(d['VelocityMag']))
+    for i in range(0,2):
+      if len(d[i]) > 0:
+        x=[]
+        y=[]
+        z=[]
+        for f in d[i]:
+          x.append(float(f['X']))
+          y.append(float(f['Y']))
+          z.append(float(f['Z']))
 
-    x = np.array(x)
-    y = np.array(y)
-    z = np.array(z)
-    xr = [np.amin(x),np.amax(x)]
-    yr = [np.amin(y),np.amax(y)]
+        x = np.array(x)
+        y = np.array(y)
+        z = np.array(z)
+
+        X.append(x);
+        Y.append(y);
+        Z.append(z);
+        plotx[0] = min(plotx[0],np.amin(x));
+        plotx[1] = max(plotx[1],np.amax(x));
+        ploty[0] = min(ploty[0],np.amin(y));
+        ploty[1] = max(ploty[1],np.amax(y));
+
+      else:
+        X.append(np.array([]));
+        Y.append(np.array([]));
+        Z.append(np.array([]));
     
-    xi = np.linspace(xr[0],xr[1],100)
-    yi = np.linspace(yr[0],yr[1],100)
-    zi = griddata((x,y),z,(xi[None,:],yi[:,None]),method='cubic')
-    print '%s %s %s' %( xi.size, yi.size, zi.size)
-    fig = plt.figure()
-    CS = plt.contour(xi,yi,zi,15,linewidths=0.5,colors='k')
-    CS = plt.contourf(xi,yi,zi,15,cmap=plt.cm.jet)
-    plt.colorbar()
-    plt.scatter(x,y,marker='o',c='b',s=5)
-    plt.xlim(xr[0],xr[1])
-    plt.ylim(yr[0],yr[1])
-    plt.title('Thing')
-    plt.show()
-    sio = cStringIO.StringIO()
-    fig.savefig(sio,format="png")
-    string = sio.getvalue() 
-    print 'Sending response'
-    return Response(string.encode("base64").strip())
+    xi = np.linspace(plotx[0],plotx[1],100)
+    yi = np.linspace(ploty[0],ploty[1],100)
+
+    for i in range(0,2):
+      if X[i].size > 0: 
+        Zi.append(griddata((X[i],Y[i]),Z[i],(xi[None,:],yi[:,None]),method='cubic'))
+      else:
+        Zi.append(np.array([]))
+
+    if Zi[0].size > 0 and Zi[1].size > 0:
+      Zi.append(np.subtract(Zi[1],Zi[0]))
+    else:
+      Zi.append(np.array([]))
+
+    for i in range(0,3):
+      if Zi[i].size > 0:
+        fig = plt.figure()
+        if not(np.nanmax(Zi[i]) == 0 and np.nanmin(Zi[i]) == 0):
+          CS = plt.contour(xi,yi,Zi[i],15,linewidths=0.5,colors='k')
+          CS = plt.contourf(xi,yi,Zi[i],15,cmap=plt.cm.jet)
+          plt.colorbar()
+        if i < 2:
+          plt.scatter(X[i],Y[i],marker='o',c='b',s=5)
+        plt.xlim(plotx[0],plotx[1])
+        plt.ylim(ploty[0],ploty[1])
+        plt.xlabel('X')
+        plt.ylabel('Y')
+        plt.show()
+        sio = cStringIO.StringIO()
+        fig.savefig(sio,format="png")
+        string = sio.getvalue() 
+        ret.append(string.encode("base64").strip())
+      else:
+        ret.append("")
+    
+    return Response(dumps(ret))
   
   def on_hello(self,request):
     return Response('Hello World')
