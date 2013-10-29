@@ -5,6 +5,7 @@ require('./jquery.csv-0.71.min.js');
 
 
 
+var reflecting = [false,false];
 var d = [[],[]];
 $(function(){
 //Set up events etc
@@ -47,7 +48,19 @@ function processFile(n,res,file){
     }
   
   var td = $.csv.toObjects(res);
-
+  td.forEach(function(el){ 
+    if (el.x)
+    {
+    el.X = el.x; 
+    delete(el.x)
+    }
+    if (el.y)
+    {
+    el.Y = el.y;
+    delete(el.y);
+    }
+    }
+  );
 
   var reflect = true;
   var signs = null;
@@ -74,7 +87,7 @@ function processFile(n,res,file){
   d[n-1] = td;
 
 
-
+  $('#select' + n + '>option').remove();
   //Add entries into the selects, put in appropriate data structure and send both over. Consider caching responses
   for(var k in d[n-1][0]){
   if(k.length > 0 & k !== 'X' & k !== 'Y')

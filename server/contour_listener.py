@@ -42,6 +42,7 @@ class ContourPlotter(object):
     Zi = [];
     plotx = [float("Inf"),float("-Inf")]
     ploty = [float("Inf"),float("-Inf")]
+    plotz = [float("Inf"),float("-Inf")]
 
     for i in range(0,2):
       if len(d[i]) > 0:
@@ -65,6 +66,7 @@ class ContourPlotter(object):
         ploty[0] = min(ploty[0],np.amin(y));
         ploty[1] = max(ploty[1],np.amax(y));
 
+
       else:
         X.append(np.array([]));
         Y.append(np.array([]));
@@ -76,6 +78,10 @@ class ContourPlotter(object):
     for i in range(0,2):
       if X[i].size > 0: 
         Zi.append(griddata((X[i],Y[i]),Z[i],(xi[None,:],yi[:,None]),method='cubic'))
+
+        plotz[0] = min(plotz[0],np.nanmin(Zi[i]));
+        plotz[1] = max(plotz[1],np.nanmax(Zi[i]));
+
       else:
         Zi.append(np.array([]))
 
@@ -87,9 +93,13 @@ class ContourPlotter(object):
     for i in range(0,3):
       if Zi[i].size > 0:
         fig = plt.figure()
-        if not(np.nanmax(Zi[i]) == 0 and np.nanmin(Zi[i]) == 0):
-          CS = plt.contour(xi,yi,Zi[i],15,linewidths=0.5,colors='k')
-          CS = plt.contourf(xi,yi,Zi[i],15,cmap=plt.cm.jet)
+        if not(np.nanmax(Zi[i]) == np.nanmin(Zi[i])):
+          if i < 2:
+            clevels = np.linspace(plotz[0],plotz[1],15)
+          else:
+            clevels = 15
+          CS = plt.contour(xi,yi,Zi[i],clevels,linewidths=0.5,colors='k')
+          CS = plt.contourf(xi,yi,Zi[i],clevels,cmap=plt.cm.jet)
           plt.colorbar()
         if i < 2:
           plt.scatter(X[i],Y[i],marker='o',c='b',s=5)
@@ -102,9 +112,9 @@ class ContourPlotter(object):
         fig.savefig(sio,format="png")
         string = sio.getvalue() 
         ret.append(string.encode("base64").strip())
+        plt.close()
       else:
         ret.append("")
-    
     return Response(dumps(ret))
   
   def on_hello(self,request):
