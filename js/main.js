@@ -5,7 +5,7 @@ require('./jquery.csv-0.71.min.js');
 
 
 
-var reflecting = [false,false];
+var sign = [null,null];
 var d = [[],[]];
 $(function(){
 //Set up events etc
@@ -37,7 +37,7 @@ var file = e.originalEvent.dataTransfer.files[0],
 function processFile(n,res,file){
   
   var el = $('#panel' + n);
-
+  $('#filename' + n).text(file.name);
   var re = /(?:\.([^.]+))?$/;
   var extension = re.exec(file.name)[1];
 
@@ -47,7 +47,10 @@ function processFile(n,res,file){
     res = res.replace(/[ ]*\n/g,'\n').replace(/[ ]+/g,',')
     }
   
-  var td = $.csv.toObjects(res);
+    res = res.replace(/ /g,'');
+
+
+  var td = $.csv.toObjects(res,$.trim);
   td.forEach(function(el){ 
     if (el.x)
     {
@@ -62,27 +65,38 @@ function processFile(n,res,file){
     }
   );
 
-  var reflect = true;
   var signs = null;
 
-  td.forEach(function(el){
-  if (el.Y > 0){
-  reflect = (reflect && (signs === 1 || signs == null));
-  signs = 1;
-  } else if(el.Y < 0) {
-    reflect = (reflect && (signs === -1 || signs == null));
-    signs = -1;
-  };
-  });
+  var signs = td.map(function(el){
+    if (el.Y > 0) return 1;
+    else if (el.Y < 0) return -1;
+    else return 0});
+  
+  var samesign = true;
+  signs.forEach(function(el){ samesign = samesign && el == signs[0]});
+  sign[n-1] = samesign ? signs[0] : 0; 
 
-  if(reflect){
-    var td2 = $.csv.toObjects(res); //ugh
-    td2.forEach(function(el){
-      var tel = $.extend({},el);
-      tel.Y = -tel.Y;
-      td.push(tel);
-    });
-  }
+
+
+  //td.forEach(function(el){
+  //if (el.Y > 0){
+  //reflect = (reflect && (signs === 1 || signs == null));
+  //signs = 1;
+  //} else if(el.Y < 0) {
+  //  reflect = (reflect && (signs === -1 || signs == null));
+  //  signs = -1;
+  //};
+  //});
+
+
+  //if(reflect){
+  //  var td2 = $.csv.toObjects(res); //ugh
+  //  td2.forEach(function(el){
+  //    var tel = $.extend({},el);
+  //    tel.Y = -tel.Y;
+  //    td.push(tel);
+  //  });
+  //}
 
   d[n-1] = td;
 
@@ -101,6 +115,15 @@ function processFile(n,res,file){
   plotGraphs();
 }
 
+function reflect(td){
+var td2 = $.extend([],td);
+td2.forEach(function(el){
+var tel = $.extend({},el);
+tel.Y = (-parseFloat(el.Y)) + ''; 
+td.push(tel)}
+);
+}
+
 function plotGraphs(el)
 {
   var a = [[],[]];
@@ -108,6 +131,12 @@ function plotGraphs(el)
   d[0].length && d[0].forEach(function(obj){a[0].push({X:obj.X,Y:obj.Y, Z:obj[fields[0]]})});
   d[1].length && d[1].forEach(function(obj){a[1].push({X:obj.X,Y:obj.Y, Z:obj[fields[1]]})});
   
+  if (sign[0] != null && sign[0] === 0 && (sign[1] === -1 || sign[1] == 1)) reflect(a[1]);
+  if (sign[1] != null && sign[1] === 0 && (sign[0] === -1 || sign[0] == 1)) reflect(a[0]);
+  if (sign[1] !== 0 && (sign[1] === -1*sign[0])){ reflect(a[1]); reflect(a[0]); };
+  
+
+
   $(el).closest('.bigpanel').find('img').remove();
   $('#deltarow').find('img').remove();
 
