@@ -1,11 +1,13 @@
 import os
 import urlparse
-from werkzeug.wrappers    import Request, Response
-from werkzeug.routing     import Map, Rule
-from werkzeug.exceptions  import HTTPException, NotFound
-from werkzeug.wsgi        import SharedDataMiddleware
-from werkzeug.utils       import redirect
-from werkzeug.urls        import url_decode
+
+
+import flask
+from flask import Response
+from flask import request
+
+app = flask.Flask(__name__)
+
 
 import matplotlib
 matplotlib.use('Agg')
@@ -16,25 +18,23 @@ from scipy.interpolate import griddata
 import urllib
 import numpy.ma as ma
 import cStringIO
-import msvcrt
+
+#import time
 
 from simplejson import loads,dumps
-class ContourPlotter(object):
+@app.after_request
+def after_request(response):
+  response.headers.add('Access-Control-Allow-Origin','*')
+  return response
 
-  def __init__(self):
-    self.thing = "thing"
-    self.url_map = Map([
-      Rule('/floorpng',endpoint='generate_png'),
-      Rule('/floorsvg',endpoint='generate_svg'),
-      Rule('/',endpoint='hello')
-      ])
-  def on_generate_svg(self,request,random_thing):
-    return Response('Generating svg %s' % request.url)
-
-  def on_generate_png(self,request):
-    print request.headers.get('content-type')
-    thing = request.form.copy().popitem()
-    d = loads(thing[0])
+@app.route("/floorviewer/generate",methods=['POST'])
+def on_generate_png():
+    print 'hello'
+    thing = request.form
+    #print thing.items()[0][0]
+    d = loads(thing.items()[0][0])
+    
+    #print d
     ret = [] #returns three png things
     X = [];
     Y = [];
@@ -43,7 +43,6 @@ class ContourPlotter(object):
     plotx = [float("Inf"),float("-Inf")]
     ploty = [float("Inf"),float("-Inf")]
     plotz = [float("Inf"),float("-Inf")]
-
     for i in range(0,2):
       if len(d[i]) > 0:
         x=[]
@@ -93,6 +92,7 @@ class ContourPlotter(object):
     for i in range(0,3):
       if Zi[i].size > 0:
         fig = plt.figure()
+        #time_start = time.time()
         if not(np.nanmax(Zi[i]) == np.nanmin(Zi[i])):
           if i < 2:
             clevels = np.linspace(plotz[0],plotz[1],15)
@@ -108,6 +108,8 @@ class ContourPlotter(object):
         plt.xlabel('X')
         plt.ylabel('Y')
         plt.show()
+        #time_elapsed = time.time() - time_start
+        #fig.suptitle(str(time_elapsed))
         sio = cStringIO.StringIO()
         fig.savefig(sio,format="png")
         string = sio.getvalue() 
@@ -115,35 +117,11 @@ class ContourPlotter(object):
         plt.close()
       else:
         ret.append("")
-    return Response(dumps(ret))
+
+    r = Response(dumps(ret))
+    
+    return r
   
-  def on_hello(self,request):
-    return Response('Hello World')
-
-  def dispatch_request(self,request):
-    adapter = self.url_map.bind_to_environ(request.environ)
-    try:
-      endpoint, values = adapter.match()
-      return getattr(self, 'on_' + endpoint)(request, **values)
-    except HTTPException, e:
-      return e
-
-  def wsgi_app(self,environ,start_response):
-    request = Request(environ)
-    response = self.dispatch_request(request)
-    response.headers.add('Access-Control-Allow-Origin','*')
-    return response(environ,start_response)
-  
-  def __call__(self,environ,start_response):
-
-    return self.wsgi_app(environ,start_response)
-
-def create_app():
-  app = ContourPlotter()
-  return app
 
 if __name__ == '__main__':
-  from werkzeug.serving import run_simple
-  app = ContourPlotter()
-  run_simple('dev-performanceanalysis', 5000, app, use_debugger=True, use_reloader=True)
-
+  app.run(host="0.0.0.0",port=5000,debug=True)

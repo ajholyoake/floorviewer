@@ -50,7 +50,7 @@ function processFile(n,res,file){
     res = res.replace(/ /g,'');
 
 
-  var td = $.csv.toObjects(res,$.trim);
+  var td = $.csv.toObjects(res);
   td.forEach(function(el){ 
     if (el.x)
     {
@@ -140,8 +140,9 @@ function plotGraphs(el)
   $(el).closest('.bigpanel').find('img').remove();
   $('#deltarow').find('img').remove();
 
-  
-  $.post("http://dev-performanceanalysis:5000/floorpng",JSON.stringify(a),function(retdata,textstatus,jqXHR)
+  var connect_string =  "http://dev-performanceanalysis/floorviewer/generate";
+  //connect_string = "http://dev-performanceanalysis:5000/floorviewer/generate";
+  $.post(connect_string,JSON.stringify(a),function(retdata,textstatus,jqXHR)
   {
   var pngs = JSON.parse(retdata);
   for (var ii =0; ii < pngs.length; ii++)
