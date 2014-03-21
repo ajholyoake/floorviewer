@@ -126,14 +126,16 @@ td.push(tel)}
 
 function plotGraphs(el)
 {
-  var a = [[],[]];
+  var a = {images:[[],[]]};
+  a.colmin = $('#colmin').val();
+  a.colmax = $('#colmax').val();
   var fields = [$('#select1').val(), $('#select2').val()];
-  d[0].length && d[0].forEach(function(obj){a[0].push({X:obj.X,Y:obj.Y, Z:obj[fields[0]]})});
-  d[1].length && d[1].forEach(function(obj){a[1].push({X:obj.X,Y:obj.Y, Z:obj[fields[1]]})});
+  d[0].length && d[0].forEach(function(obj){a.images[0].push({X:obj.X,Y:obj.Y, Z:obj[fields[0]]})});
+  d[1].length && d[1].forEach(function(obj){a.images[1].push({X:obj.X,Y:obj.Y, Z:obj[fields[1]]})});
   
-  if (sign[0] != null && sign[0] === 0 && (sign[1] === -1 || sign[1] == 1)) reflect(a[1]);
-  if (sign[1] != null && sign[1] === 0 && (sign[0] === -1 || sign[0] == 1)) reflect(a[0]);
-  if (sign[1] !== 0 && (sign[1] === -1*sign[0])){ reflect(a[1]); reflect(a[0]); };
+  if (sign[0] != null && sign[0] === 0 && (sign[1] === -1 || sign[1] == 1)) reflect(a.images[1]);
+  if (sign[1] != null && sign[1] === 0 && (sign[0] === -1 || sign[0] == 1)) reflect(a.images[0]);
+  if (sign[1] !== 0 && (sign[1] === -1*sign[0])){ reflect(a.images[1]); reflect(a.images[0]); };
   
 
 

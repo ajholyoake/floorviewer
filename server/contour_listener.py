@@ -19,6 +19,8 @@ import urllib
 import numpy.ma as ma
 import cStringIO
 
+import matplotlib.colors as colors
+
 #import time
 
 from simplejson import loads,dumps
@@ -32,7 +34,10 @@ def on_generate_png():
     print 'hello'
     thing = request.form
     #print thing.items()[0][0]
-    d = loads(thing.items()[0][0])
+    form_info = loads(thing.items()[0][0])
+    d = form_info["images"]
+    colmin = form_info["colmin"]
+    colmax = form_info["colmax"]
     
     #print d
     ret = [] #returns three png things
@@ -89,20 +94,45 @@ def on_generate_png():
     else:
       Zi.append(np.array([]))
 
+    
+
     for i in range(0,3):
       if Zi[i].size > 0:
         fig = plt.figure()
         #time_start = time.time()
         if not(np.nanmax(Zi[i]) == np.nanmin(Zi[i])):
+          try:
+            cmin = float(colmin)
+          except ValueError:
+            cmin = plotz[0]
+
+          try:
+            cmax = float(colmax)
+          except ValueError:
+            cmax = plotz[1]
+
+
           if i < 2:
-            clevels = np.linspace(plotz[0],plotz[1],15)
+            clevels = np.linspace(cmin,cmax,15)
           else:
             clevels = 15
-          CS = plt.contour(xi,yi,Zi[i],clevels,linewidths=0.5,colors='k')
-          CS = plt.contourf(xi,yi,Zi[i],clevels,cmap=plt.cm.jet)
+
+          cmap = matplotlib.cm.jet;
+          cnorm = matplotlib.colors.Normalize(cmap,clip=False)
+          cmap.set_under(color = cmap(cmin),alpha = 1.0)
+          cmap.set_over(color = cmap(cmax),alpha = 1.0)
+
+          Zi[i][Zi[i] < cmin] = cmin;
+          Zi[i][Zi[i] > cmax] = cmax;
+          try:
+            CS = plt.contour(xi,yi,Zi[i],clevels[1:-1],linewidths=0.5,colors='k')
+          except TypeError:
+            CS = plt.contour(xi,yi,Zi[i],clevels,linewidths=0.5,colors='k')
+          CS = plt.contourf(xi,yi,Zi[i],clevels,cmap=cmap)
+          #plt.text(xi[1],yi[1],str(clevels))
           plt.colorbar()
-        if i < 2:
-          plt.scatter(X[i],Y[i],marker='o',c='b',s=5)
+        #if i < 2:
+          #plt.scatter(X[i],Y[i],marker='o',c='b',s=5)
         plt.xlim(plotx[0],plotx[1])
         plt.ylim(ploty[0],ploty[1])
         plt.xlabel('X')
